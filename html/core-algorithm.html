@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>核心算法 - 零流量接口治理项目</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({ startOnLoad: true, theme: 'default' });</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; background: #f5f7fa; line-height: 1.8; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; }
+        h1 { font-size: 2em; margin-bottom: 10px; }
+        .back-link { color: white; text-decoration: none; opacity: 0.9; display: inline-block; margin-bottom: 10px; }
+        .content { background: white; border-radius: 10px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        h2 { color: #667eea; margin: 30px 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e3f2fd; font-size: 1.6em; }
+        h3 { color: #555; margin: 20px 0 10px 0; font-size: 1.2em; }
+        .algo-box { background: #f8f9fa; padding: 25px; border-radius: 8px; margin: 20px 0; font-family: monospace; line-height: 1.8; border-left: 4px solid #28a745; white-space: pre; overflow-x: auto; }
+        .example-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-family: monospace; color: #e83e8c; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 20px; border-radius: 8px; overflow-x: auto; line-height: 1.5; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border: 1px solid #dee2e6; }
+        th { background: #667eea; color: white; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        ul { margin: 15px 0 15px 30px; }
+        li { margin: 8px 0; color: #555; }
+        .highlight { background: #fff3cd; padding: 2px 6px; border-radius: 3px; font-weight: 500; }
+        .flow-visual { background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0; font-family: monospace; line-height: 2; white-space: pre; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-link">← 返回首页</a>
+            <h1>💡 核心算法详解</h1>
+        </header>
+
+        <div class="content">
+            <h2>一、级联删除算法（DFS深度优先）</h2>
+
+            <h3>算法目标</h3>
+            <p>从零流量接口出发，递归分析所有只被该删除链路调用的方法，构建完整的可删除方法集合。</p>
+
+            <div class="algo-box">
+<strong>核心思想：</strong>
+如果方法M的所有调用方都在"待删除集合"中，
+且M不在黑名单中，那么M也可以删除。
+
+递归应用这个规则，直到无新方法可加入。
+            </div>
+
+            <h3>算法伪代码</h3>
+            <pre>
+// 输入：零流量接口方法哈希
+// 输出：可删除方法集合
+
+Set&lt;String&gt; deletableSet = new HashSet&lt;&gt;();
+Set&lt;String&gt; visited = new HashSet&lt;&gt;();
+
+function dfs(methodHash):
+    if visited.contains(methodHash):
+        return
+    visited.add(methodHash)
+
+    // 将当前方法加入可删除集合
+    deletableSet.add(methodHash)
+
+    // 查询该方法调用的所有下游方法
+    callees = queryCallees(methodHash)
+
+    for each callee in callees:
+        // 查询callee的所有调用方
+        callers = queryCallers(callee)
+
+        // 判断callee是否只被删除链路调用
+        onlyCalledByDeletePath = true
+        for each caller in callers:
+            if not deletableSet.contains(caller):
+                onlyCalledByDeletePath = false
+                break
+
+        // 如果callee只被删除链路调用，且不在黑名单
+        if onlyCalledByDeletePath and not isInBlacklist(callee):
+            dfs(callee)  // 递归分析
+</pre>
+
+            <h2>二、复杂场景处理</h2>
+
+            <h3>场景1：线性调用链</h3>
+            <div class="mermaid">
+graph LR
+    A[方法A<br/>零流量接口] --> B[方法B]
+    B --> C[方法C]
+    C --> D[方法D]
+
+    style A fill:#ffcdd2
+    style B fill:#ffcdd2
+    style C fill:#ffcdd2
+    style D fill:#ffcdd2
+            </div>
+            <p><strong>分析过程：</strong></p>
+            <ol>
+                <li>删除A，A加入deletableSet</li>
+                <li>B只被A调用 → B可删，加入deletableSet</li>
+                <li>C只被B调用 → C可删，加入deletableSet</li>
+                <li>D只被C调用 → D可删，加入deletableSet</li>
+            </ol>
+            <p><strong>结果：</strong><span style="color: #d32f2f;">A、B、C、D 全部删除</span></p>
+
+            <h3>场景2：共享依赖</h3>
+            <div class="mermaid">
+graph LR
+    A[方法A<br/>零流量接口] --> C[方法C<br/>共享方法]
+    B[方法B<br/>正常使用] --> C
+
+    style A fill:#ffcdd2
+    style B fill:#c8e6c9
+    style C fill:#c8e6c9
+            </div>
+            <p><strong>分析过程：</strong></p>
+            <ol>
+                <li>删除A，A加入deletableSet</li>
+                <li>C被A和B调用，B不在deletableSet</li>
+                <li>C不满足"只被删除链路调用" → C保留</li>
+            </ol>
+            <p><strong>结果：</strong><span style="color: #d32f2f;">只删除A</span>，<span style="color: #388e3c;">C保留</span></p>
+
+            <h3>场景3：循环依赖</h3>
+            <div class="mermaid">
+graph LR
+    A[方法A<br/>零流量接口] --> B[方法B]
+    B --> C[方法C]
+    C --> B
+
+    style A fill:#ffcdd2
+    style B fill:#ffcdd2
+    style C fill:#ffcdd2
+            </div>
+            <p><strong>问题：</strong>普通DFS会陷入死循环</p>
+            <p><strong>解决方案：</strong>visited集合记录已访问节点</p>
+            <ol>
+                <li>访问A → A加入visited</li>
+                <li>访问B → B加入visited</li>
+                <li>访问C → C加入visited</li>
+                <li>再次访问B → 检测到B在visited中，直接return</li>
+            </ol>
+            <p><strong>结果：</strong>算法正常结束，<span style="color: #d32f2f;">A、B、C都可删</span></p>
+
+            <h2>三、方法签名匹配策略</h2>
+
+            <h3>挑战场景</h3>
+            <table>
+                <tr>
+                    <th>场景</th>
+                    <th>问题</th>
+                    <th>解决方案</th>
+                </tr>
+                <tr>
+                    <td><strong>方法重载</strong></td>
+                    <td>同名方法，不同参数</td>
+                    <td>基于完整签名哈希匹配<br><code>className:methodName(paramTypes):returnType</code></td>
+                </tr>
+                <tr>
+                    <td><strong>泛型参数</strong></td>
+                    <td>编译后类型擦除<br><code>List&lt;User&gt; → List</code></td>
+                    <td>统一按原始类型匹配</td>
+                </tr>
+                <tr>
+                    <td><strong>Lambda表达式</strong></td>
+                    <td>生成匿名方法<br><code>lambda$0</code></td>
+                    <td>通过caller_line_num反查源码位置</td>
+                </tr>
+                <tr>
+                    <td><strong>内部类</strong></td>
+                    <td>嵌套类名</td>
+                    <td>展开为<code>OuterClass$InnerClass</code>格式</td>
+                </tr>
+            </table>
+
+            <h3>方法签名哈希生成</h3>
+            <div class="example-box">
+                <strong>示例：</strong>
+                <pre>
+// 原始方法
+public void save(User user, boolean async)
+
+// 完整签名
+com.ke.luban.UserService:save(User,boolean):void
+
+// MD5哈希
+hash_abc123...</pre>
+                <p><strong>好处：</strong>精确匹配，避免重载冲突</p>
+            </div>
+
+            <h2>四、黑名单判定逻辑</h2>
+
+            <h3>判定流程</h3>
+            <div class="algo-box">
+<strong>判定顺序（优先级从高到低）：</strong>
+
+1. <strong>白名单检查</strong>
+   if isInWhitelist(method):
+       return DELETABLE  // 强制删除
+
+2. <strong>黑名单检查</strong>
+   if isInBlacklist(method):
+       return PROTECTED  // 必须保留
+
+3. <strong>调用链分析</strong>
+   if onlyCalledByDeletePath(method):
+       return DELETABLE
+   else:
+       return KEEP
+            </div>
+
+            <h3>黑名单规则类型</h3>
+            <table>
+                <tr>
+                    <th>类型</th>
+                    <th>规则示例</th>
+                    <th>匹配逻辑</th>
+                </tr>
+                <tr>
+                    <td><strong>注解保护</strong></td>
+                    <td><code>@Scheduled</code><br><code>@KafkaListener</code></td>
+                    <td>精确匹配注解全限定名</td>
+                </tr>
+                <tr>
+                    <td><strong>包路径保护</strong></td>
+                    <td><code>com.ke.luban.payment</code></td>
+                    <td>前缀匹配</td>
+                </tr>
+                <tr>
+                    <td><strong>通配符匹配</strong></td>
+                    <td><code>**.migrate.**</code></td>
+                    <td>正则表达式<br><code>.*\.migrate\..*</code></td>
+                </tr>
+                <tr>
+                    <td><strong>方法名保护</strong></td>
+                    <td><code>afterPropertiesSet</code></td>
+                    <td>精确匹配方法名</td>
+                </tr>
+            </table>
+
+            <h2>五、性能优化</h2>
+
+            <h3>优化点1：H2数据库索引</h3>
+            <div class="example-box">
+                <pre>
+-- 加速调用关系查询
+CREATE INDEX idx_caller ON jacg_method_call(caller_hash);
+CREATE INDEX idx_callee ON jacg_method_call(callee_hash);
+
+-- 加速方法信息查询
+CREATE INDEX idx_method_name ON jacg_method_info(method_name);
+CREATE INDEX idx_simple_class ON jacg_method_info(simple_class);</pre>
+                <p><strong>效果：</strong>查询延迟从500ms降至80ms</p>
+            </div>
+
+            <h3>优化点2：剪枝策略</h3>
+            <ul>
+                <li><strong>提前终止：</strong>遇到黑名单方法立即停止递归</li>
+                <li><strong>缓存已访问节点：</strong>visited集合避免重复分析</li>
+                <li><strong>过滤第三方JAR：</strong>只分析业务代码，排除Spring、MyBatis等</li>
+            </ul>
+            <p><strong>效果：</strong>单接口分析耗时从15秒降至7秒</p>
+
+            <h3>优化点3：并发执行</h3>
+            <ul>
+                <li>多个接口分析任务并发执行（线程池）</li>
+                <li>H2数据库任务级隔离（每个任务独立H2实例）</li>
+                <li>Worker Pod水平扩展（K8s 3个副本）</li>
+            </ul>
+
+            <h2>六、面试回答要点</h2>
+
+            <div class="example-box">
+                <h3>高频问题1：为什么用DFS而不是BFS？</h3>
+                <p><strong>回答：</strong></p>
+                <ol>
+                    <li><strong>调用链特点：</strong>方法调用链通常较深（10-20层），DFS更符合调用栈的自然结构</li>
+                    <li><strong>空间复杂度：</strong>DFS只需维护当前路径的栈空间，BFS需要队列存储所有同层节点</li>
+                    <li><strong>提前剪枝：</strong>DFS遇到黑名单方法可立即停止该分支，BFS需要等待整层结束</li>
+                    <li><strong>代码简洁：</strong>DFS递归实现更直观，易于理解和维护</li>
+                </ol>
+            </div>
+
+            <div class="example-box">
+                <h3>高频问题2：如何保证不误删？</h3>
+                <p><strong>回答（多重保障）：</strong></p>
+                <ol>
+                    <li><strong>调用链分析：</strong>只删除"仅被删除链路调用"的方法</li>
+                    <li><strong>黑名单机制：</strong>保护支付类、核心链路、框架方法（42个方法被保护）</li>
+                    <li><strong>编译校验：</strong>删除后立即Maven编译，失败自动回滚</li>
+                    <li><strong>测试流水线：</strong>自动触发156个单元测试+42个集成测试</li>
+                    <li><strong>人工审批：</strong>预览报告需Tech Leader审查</li>
+                </ol>
+                <p><strong>结果：</strong>上线后3个月，误删率<span class="highlight">0%</span>，线上故障<span class="highlight">0起</span></p>
+            </div>
+
+            <div class="example-box">
+                <h3>高频问题3：循环依赖怎么处理？</h3>
+                <p><strong>回答：</strong></p>
+                <ol>
+                    <li><strong>visited集合：</strong>记录已访问的方法，检测到重复访问立即return</li>
+                    <li><strong>不影响结果：</strong>循环依赖的方法如果都只被删除链路调用，仍然全部可删</li>
+                    <li><strong>实际案例：</strong>在A→B→C→B这种场景下，算法正确识别A、B、C都可删</li>
+                </ol>
+            </div>
+
+            <p style="margin-top: 30px; text-align: center;">
+                <a href="architecture.html" style="display: inline-block; background: #6c757d; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-right: 10px;">← 上一节</a>
+                <a href="development.html" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">下一节：开发实践 →</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

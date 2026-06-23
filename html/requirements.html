@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>需求背景 - 零流量接口治理项目</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({ startOnLoad: true, theme: 'default' });</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; background: #f5f7fa; line-height: 1.8; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; }
+        h1 { font-size: 2em; margin-bottom: 10px; }
+        .back-link { color: white; text-decoration: none; opacity: 0.9; display: inline-block; margin-bottom: 10px; }
+        .back-link:hover { opacity: 1; }
+        .content { background: white; border-radius: 10px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        h2 { color: #667eea; margin: 30px 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e3f2fd; font-size: 1.6em; }
+        h3 { color: #555; margin: 20px 0 10px 0; font-size: 1.2em; }
+        .problem-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        .solution-box { background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        .highlight { background: #fff3cd; padding: 2px 6px; border-radius: 3px; font-weight: 500; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border: 1px solid #dee2e6; }
+        th { background: #667eea; color: white; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        ul, ol { margin: 15px 0 15px 30px; }
+        li { margin: 8px 0; color: #555; }
+        .flow-diagram { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; font-family: monospace; line-height: 2; white-space: pre; overflow-x: auto; }
+        .metric { display: inline-block; background: #e3f2fd; color: #1976d2; padding: 5px 12px; border-radius: 15px; margin: 5px; font-weight: 500; }
+        strong { color: #2c3e50; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-link">← 返回首页</a>
+            <h1>📋 需求背景与项目目标</h1>
+        </header>
+
+        <div class="content">
+            <h2>一、业务痛点</h2>
+
+            <div class="problem-box">
+                <h3>🔴 核心问题</h3>
+                <p>鲁班内控平台经过3年迭代，代码仓库累积大量历史接口和方法，通过<strong>FAST流量监控</strong>发现生产环境存在：</p>
+                <ul>
+                    <li><span class="metric">200+ 零流量接口</span>（90天无任何调用）</li>
+                    <li><span class="metric">3000+ 行无用代码</span>（关联的Service、Utils、DAO层方法）</li>
+                    <li>影响编译速度、干扰代码阅读、增加新人理解成本</li>
+                </ul>
+            </div>
+
+            <h3>人工治理的困境</h3>
+            <table>
+                <tr>
+                    <th>问题</th>
+                    <th>具体表现</th>
+                    <th>影响</th>
+                </tr>
+                <tr>
+                    <td><strong>不敢删</strong></td>
+                    <td>担心误删导致线上故障</td>
+                    <td>代码冗余持续积累</td>
+                </tr>
+                <tr>
+                    <td><strong>删不干净</strong></td>
+                    <td>调用链复杂，手工排查耗时且易遗漏</td>
+                    <td>留下僵尸方法</td>
+                </tr>
+                <tr>
+                    <td><strong>效率低</strong></td>
+                    <td>单个接口治理平均耗时 <strong>2小时</strong></td>
+                    <td>人力成本高，无法规模化</td>
+                </tr>
+                <tr>
+                    <td><strong>无审计</strong></td>
+                    <td>缺乏统一平台和删除记录</td>
+                    <td>风险不可控</td>
+                </tr>
+            </table>
+
+            <div class="mermaid">
+graph TD
+    A[定位接口<br/>30分钟] --> B[手工排查调用链<br/>60分钟<br/>容易遗漏]
+    B --> C[删除代码<br/>20分钟]
+    C --> D[编译测试<br/>10分钟]
+    D --> E[风险：误删率约15%<br/>无法批量处理]
+
+    style E fill:#f8d7da
+            </div>
+            <p style="text-align: center; color: #dc3545; font-weight: bold;">总耗时：2小时</p>
+
+            <h2>二、项目目标</h2>
+
+            <div class="solution-box">
+                <h3>✅ 核心目标</h3>
+                <p>构建<strong>零流量接口治理与级联删除平台</strong>，实现从"发现 → 分析 → 删除 → 验证 → 交付"的全流程自动化。</p>
+            </div>
+
+            <h3>量化目标</h3>
+            <table>
+                <tr>
+                    <th>指标</th>
+                    <th>治理前</th>
+                    <th>治理后</th>
+                    <th>提升幅度</th>
+                </tr>
+                <tr>
+                    <td>单接口治理耗时</td>
+                    <td>2 小时</td>
+                    <td><strong>15 分钟</strong></td>
+                    <td><span class="highlight">提升 87.5%</span></td>
+                </tr>
+                <tr>
+                    <td>治理准确率</td>
+                    <td>约 85%</td>
+                    <td><strong>95%+</strong></td>
+                    <td><span class="highlight">提升 10%+</span></td>
+                </tr>
+                <tr>
+                    <td>批量处理能力</td>
+                    <td>单次 1-2 个</td>
+                    <td><strong>单次 50+</strong></td>
+                    <td><span class="highlight">提升 25 倍</span></td>
+                </tr>
+                <tr>
+                    <td>代码库体积</td>
+                    <td>基线</td>
+                    <td>减少 5-8%</td>
+                    <td><span class="highlight">编译提速 10%+</span></td>
+                </tr>
+            </table>
+
+            <h2>三、解决方案</h2>
+
+            <h3>技术方案核心思路</h3>
+            <ol>
+                <li><strong>自动化发现：</strong>对接FAST流量监控，获取零流量接口列表</li>
+                <li><strong>静态分析：</strong>基于<code>java-all-call-graph</code>解析字节码，生成方法调用关系图</li>
+                <li><strong>级联删除：</strong>从零流量接口出发，DFS递归分析可删除方法集合</li>
+                <li><strong>多重保障：</strong>黑名单保护 + 编译校验 + 测试流水线，确保安全</li>
+                <li><strong>平台化交付：</strong>Web UI操作、预览报告、自动推送MR</li>
+            </ol>
+
+            <div class="mermaid">
+graph TD
+    A[FAST获取零流量接口<br/>自动] --> B[勾选接口<br/>字节码解析<br/>生成调用图]
+    B --> C[级联删除算法分析<br/>DFS]
+    C --> D[生成预览报告<br/>可删/保留/不确定]
+    D --> E[人工审批<br/>自动删除代码]
+    E --> F[Maven编译校验<br/>失败自动回滚]
+    F --> G[推送分支<br/>创建MR<br/>触发测试流水线]
+    G --> H[安全：误删率0%<br/>支持批量处理]
+
+    style H fill:#d4edda
+            </div>
+            <p style="text-align: center; color: #28a745; font-weight: bold;">总耗时：15分钟</p>
+
+            <h2>四、业务价值（面试重点）</h2>
+
+            <table>
+                <tr>
+                    <th>维度</th>
+                    <th>价值体现</th>
+                </tr>
+                <tr>
+                    <td><strong>研发效能</strong></td>
+                    <td>
+                        • 3个月节省人力 <strong>42.8天</strong><br>
+                        • 单接口治理从2小时降至15分钟<br>
+                        • 支持批量治理，规模化处理
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>代码质量</strong></td>
+                    <td>
+                        • 清理18,827行无用代码<br>
+                        • 编译速度提升9.4%<br>
+                        • 代码可维护性评级从B升至A
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>系统稳定</strong></td>
+                    <td>
+                        • 误删率 <strong>0%</strong>（多重保障）<br>
+                        • 上线后3个月线上故障 <strong>0起</strong><br>
+                        • 黑名单保护42个核心方法
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>平台能力</strong></td>
+                    <td>
+                        • 沉淀可复用的代码治理平台<br>
+                        • 推广到5个团队，覆盖40+人<br>
+                        • 投资回报率（ROI）达 <strong>25.8%</strong>（3个月）
+                    </td>
+                </tr>
+            </table>
+
+            <h2>五、面试回答要点</h2>
+
+            <div class="solution-box">
+                <h3>面试官可能这样问：</h3>
+                <p><strong>Q: "为什么要做这个项目？解决了什么问题？"</strong></p>
+                <p><strong>回答框架：</strong></p>
+                <ol>
+                    <li><strong>背景：</strong>"鲁班内控平台3年迭代，累积200+零流量接口和3000+行僵尸代码"</li>
+                    <li><strong>痛点：</strong>"人工治理耗时2小时/接口，误删风险高，无法规模化"</li>
+                    <li><strong>方案：</strong>"构建平台化工具，打通FAST监控→静态分析→自动删除→编译校验全链路"</li>
+                    <li><strong>效果：</strong>"单接口耗时降至15分钟，效率提升87.5%，3个月节省42.8天人力，误删率0%"</li>
+                </ol>
+            </div>
+
+            <p style="margin-top: 30px; text-align: center;">
+                <a href="architecture.html" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">下一节：架构设计 →</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

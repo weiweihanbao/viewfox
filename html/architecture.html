@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>架构设计 - 零流量接口治理项目</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({ startOnLoad: true, theme: 'default' });</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; background: #f5f7fa; line-height: 1.8; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; }
+        h1 { font-size: 2em; margin-bottom: 10px; }
+        .back-link { color: white; text-decoration: none; opacity: 0.9; display: inline-block; margin-bottom: 10px; }
+        .back-link:hover { opacity: 1; }
+        .content { background: white; border-radius: 10px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        h2 { color: #667eea; margin: 30px 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e3f2fd; font-size: 1.6em; }
+        h3 { color: #555; margin: 20px 0 10px 0; font-size: 1.2em; }
+        .arch-diagram { background: #f8f9fa; padding: 25px; border-radius: 8px; margin: 20px 0; font-family: monospace; line-height: 1.8; border: 2px solid #dee2e6; white-space: pre; overflow-x: auto; }
+        .module-card { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #1976d2; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border: 1px solid #dee2e6; }
+        th { background: #667eea; color: white; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        .tech-choice { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 15px 0; border-radius: 5px; }
+        code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-family: monospace; color: #e83e8c; }
+        ul { margin: 15px 0 15px 30px; }
+        li { margin: 8px 0; color: #555; }
+        .highlight { background: #fff3cd; padding: 2px 6px; border-radius: 3px; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-link">← 返回首页</a>
+            <h1>🏗️ 架构设计</h1>
+        </header>
+
+        <div class="content">
+            <h2>一、总体架构（分层设计）</h2>
+
+            <div class="mermaid">
+graph TB
+    A[前端层 React + Ant Design<br/>接口工作台 预览页 结果页 配置管理 审计]
+    B[应用服务层 Spring Boot<br/>任务编排 状态机 权限控制 日志审计]
+    C[核心引擎层 Java<br/>字节码解析 调用图生成 级联分析 代码删除]
+    D[数据存储层<br/>MySQL H2 Redis OSS]
+    E[外部依赖层<br/>FAST Git CI/CD Apollo配置中心]
+
+    A -->|HTTP/JSON| B
+    B --> C
+    C --> D
+    C --> E
+
+    style A fill:#e3f2fd
+    style B fill:#bbdefb
+    style C fill:#90caf9
+    style D fill:#64b5f6
+    style E fill:#42a5f5
+            </div>
+
+            <h2>二、核心模块与技术选型</h2>
+
+            <table>
+                <tr>
+                    <th>模块</th>
+                    <th>职责</th>
+                    <th>技术选型</th>
+                    <th>选型理由</th>
+                </tr>
+                <tr>
+                    <td><strong>流量接口服务</strong></td>
+                    <td>对接FAST，获取零流量接口</td>
+                    <td>HTTP Client + 定时任务</td>
+                    <td>简单高效</td>
+                </tr>
+                <tr>
+                    <td><strong>字节码解析引擎</strong></td>
+                    <td>解析JAR/Class，提取调用关系</td>
+                    <td><code>java-all-call-graph</code></td>
+                    <td>成熟开源，支持复杂场景</td>
+                </tr>
+                <tr>
+                    <td><strong>调用图存储</strong></td>
+                    <td>存储方法调用关系，高效查询</td>
+                    <td>H2内存数据库</td>
+                    <td>任务级隔离，性能优秀</td>
+                </tr>
+                <tr>
+                    <td><strong>级联分析引擎</strong></td>
+                    <td>递归分析可删除方法集合</td>
+                    <td>图算法（DFS）</td>
+                    <td>处理循环依赖、共享依赖</td>
+                </tr>
+                <tr>
+                    <td><strong>代码删除器</strong></td>
+                    <td>定位源码，删除指定方法</td>
+                    <td>JavaParser (AST)</td>
+                    <td>精确操作，保留格式</td>
+                </tr>
+                <tr>
+                    <td><strong>编译校验器</strong></td>
+                    <td>验证删除正确性</td>
+                    <td>Maven Invoker</td>
+                    <td>失败自动回滚</td>
+                </tr>
+                <tr>
+                    <td><strong>Git操作器</strong></td>
+                    <td>推送分支、创建MR</td>
+                    <td>JGit + GitLab API</td>
+                    <td>自动化交付</td>
+                </tr>
+            </table>
+
+            <h2>三、字节码解析方案（重点）</h2>
+
+            <div class="tech-choice">
+                <h3>为什么选择 java-all-call-graph？</h3>
+                <ul>
+                    <li><strong>成熟可靠：</strong>专注Java方法调用关系分析的开源工具</li>
+                    <li><strong>功能完整：</strong>支持JAR、Class、WAR多种输入格式</li>
+                    <li><strong>性能优秀：</strong>内置H2数据库，查询速度快</li>
+                    <li><strong>场景覆盖：</strong>支持泛型、Lambda、内部类等复杂场景</li>
+                </ul>
+            </div>
+
+            <h3>调用图数据模型</h3>
+            <div class="module-card">
+                <h4>核心表结构（H2数据库）</h4>
+                <p><strong>1. jacg_method_info（方法基本信息）</strong></p>
+                <ul>
+                    <li>method_hash：方法签名哈希（主键）</li>
+                    <li>full_method：完整方法签名</li>
+                    <li>simple_class：简单类名</li>
+                    <li>method_name：方法名</li>
+                </ul>
+
+                <p><strong>2. jacg_method_call（方法调用关系）</strong></p>
+                <ul>
+                    <li>caller_hash：调用方方法哈希</li>
+                    <li>callee_hash：被调用方方法哈希</li>
+                    <li>caller_line_num：调用发生的行号</li>
+                </ul>
+
+                <p><strong>3. jacg_method_annotation（方法注解）</strong></p>
+                <ul>
+                    <li>method_hash：方法哈希</li>
+                    <li>annotation_name：注解全限定名</li>
+                    <li>用于黑名单判定（如@Scheduled保护）</li>
+                </ul>
+            </div>
+
+            <h2>四、任务执行流程与状态机</h2>
+
+            <div class="mermaid">
+graph LR
+    A[PENDING<br/>待执行] --> B[CODE_PULLING<br/>拉取代码]
+    B --> C[ANALYZING<br/>字节码解析+调用图生成]
+    C --> D[PREVIEW_READY<br/>预览就绪 等待审批]
+    D --> E[APPROVED<br/>审批通过]
+    E --> F[DELETING<br/>删除代码]
+    F --> G[COMPILING<br/>Maven编译校验]
+    G -->|成功| H[PUSHING<br/>推送分支]
+    H --> I[SUCCESS]
+    G -->|失败| J[ROLLBACK<br/>自动回滚]
+    J --> K[FAILED]
+
+    style I fill:#d4edda
+    style K fill:#f8d7da
+            </div>
+
+            <h3>状态机设计要点</h3>
+            <ul>
+                <li><strong>幂等性：</strong>每个状态可重复进入（如编译失败后重试）</li>
+                <li><strong>可回滚：</strong>编译失败自动执行<code>git reset --hard</code></li>
+                <li><strong>可审计：</strong>每次状态变更记录日志</li>
+                <li><strong>异常处理：</strong>任务失败发送告警通知</li>
+            </ul>
+
+            <h2>五、黑白名单机制（安全保障）</h2>
+
+            <div class="module-card">
+                <h3>黑名单（保护规则）</h3>
+                <p><strong>1. 基于注解保护</strong></p>
+                <ul>
+                    <li><code>@Scheduled</code>：定时任务方法</li>
+                    <li><code>@KafkaListener</code>：消息监听方法</li>
+                    <li><code>@OpenAPI</code>：开放接口</li>
+                </ul>
+
+                <p><strong>2. 基于包路径保护</strong></p>
+                <ul>
+                    <li><code>com.ke.luban.payment</code>：支付类（绝对不能删）</li>
+                    <li><code>com.ke.luban.trade</code>：交易类</li>
+                    <li><code>**.migrate.**</code>：数据迁移脚本（通配符匹配）</li>
+                </ul>
+
+                <p><strong>3. 基于方法名保护</strong></p>
+                <ul>
+                    <li><code>afterPropertiesSet</code>：Spring生命周期方法</li>
+                    <li><code>destroy</code>：销毁方法</li>
+                </ul>
+            </div>
+
+            <div class="module-card">
+                <h3>白名单（强制删除）</h3>
+                <p><strong>使用场景：</strong>已人工确认可删除，但被黑名单误拦截的方法</p>
+                <p><strong>判定优先级：</strong>白名单 > 黑名单 > 调用链分析</p>
+            </div>
+
+            <h2>六、部署架构（K8s）</h2>
+
+            <div class="mermaid">
+graph TB
+    subgraph K8s["Kubernetes 集群"]
+        FE[Frontend Pod<br/>Nginx+React]
+        BE[Backend Pod<br/>Spring Boot]
+        W1[Worker Pod 1<br/>任务执行器]
+        W2[Worker Pod 2<br/>任务执行器]
+
+        FE <--> BE
+        BE --> W1
+        BE --> W2
+    end
+
+    W1 --> DB[(MySQL RDS)]
+    W1 --> Cache[(Redis 缓存)]
+    W2 --> DB
+    W2 --> Cache
+
+    style FE fill:#e3f2fd
+    style BE fill:#bbdefb
+    style W1 fill:#90caf9
+    style W2 fill:#90caf9
+            </div>
+
+            <h3>资源配置</h3>
+            <table>
+                <tr>
+                    <th>组件</th>
+                    <th>CPU</th>
+                    <th>内存</th>
+                    <th>副本数</th>
+                    <th>说明</th>
+                </tr>
+                <tr>
+                    <td>Backend Pod</td>
+                    <td>2核</td>
+                    <td>4GB</td>
+                    <td>2</td>
+                    <td>高可用</td>
+                </tr>
+                <tr>
+                    <td>Worker Pod</td>
+                    <td>4核</td>
+                    <td>8GB</td>
+                    <td>3</td>
+                    <td>字节码解析CPU密集</td>
+                </tr>
+            </table>
+
+            <h2>七、面试回答要点</h2>
+
+            <div class="tech-choice">
+                <h3>面试官可能这样问：</h3>
+                <p><strong>Q: "介绍一下你们的架构设计，为什么这样设计？"</strong></p>
+                <p><strong>回答框架：</strong></p>
+                <ol>
+                    <li><strong>分层架构：</strong>"采用前端层、应用层、引擎层、存储层、外部依赖层的五层架构，职责清晰，易扩展"</li>
+                    <li><strong>核心引擎：</strong>"字节码解析用java-all-call-graph，级联分析用DFS算法，代码删除用JavaParser AST"</li>
+                    <li><strong>安全保障：</strong>"黑名单机制保护核心方法，编译校验确保正确性，失败自动回滚"</li>
+                    <li><strong>性能优化：</strong>"H2内存数据库存储调用图，任务级隔离，支持并发执行"</li>
+                </ol>
+            </div>
+
+            <p style="margin-top: 30px; text-align: center;">
+                <a href="requirements.html" style="display: inline-block; background: #6c757d; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-right: 10px;">← 上一节</a>
+                <a href="core-algorithm.html" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">下一节：核心算法 →</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
