@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面试要点 - 零流量接口治理项目</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; background: #f5f7fa; line-height: 1.8; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; }
+        h1 { font-size: 2em; margin-bottom: 10px; }
+        .back-link { color: white; text-decoration: none; opacity: 0.9; display: inline-block; margin-bottom: 10px; }
+        .content { background: white; border-radius: 10px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        h2 { color: #667eea; margin: 30px 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e3f2fd; font-size: 1.6em; }
+        h3 { color: #555; margin: 20px 0 10px 0; font-size: 1.2em; }
+        .qa-box { background: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        .question { color: #667eea; font-weight: bold; font-size: 1.1em; margin-bottom: 10px; }
+        .answer { color: #555; }
+        .tip-box { background: #d4edda; border-left: 4px solid #28a745; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        .warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        .key-points { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 20px; margin: 20px 0; border-radius: 8px; }
+        ul, ol { margin: 15px 0 15px 30px; }
+        li { margin: 8px 0; color: #555; }
+        .highlight { background: #fff3cd; padding: 2px 6px; border-radius: 3px; font-weight: 500; }
+        strong { color: #2c3e50; }
+        .star-method { background: #fff; border: 2px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="index.html" class="back-link">← 返回首页</a>
+            <h1>🎯 面试核心要点</h1>
+        </header>
+
+        <div class="content">
+            <h2>一、项目介绍（1分钟电梯演讲）</h2>
+
+            <div class="key-points">
+                <h3>标准模板（背下来）</h3>
+                <p><strong>这是一个平台化代码治理工具，解决历史代码冗余问题。</strong></p>
+                <br>
+                <p><strong>背景：</strong>鲁班内控平台经过3年迭代，累积200+零流量接口和3000+行无用代码，人工治理耗时2小时/接口，误删风险高。</p>
+                <br>
+                <p><strong>方案：</strong>我们打通"FAST流量监控 → 字节码解析 → 级联删除 → 编译校验 → Git推送"全链路，采用java-all-call-graph做静态分析，基于DFS算法递归识别可删除方法，配合黑名单保护+编译校验确保安全。</p>
+                <br>
+                <p><strong>成果：</strong>单接口治理从2小时降至15分钟，效率提升87.5%；3个月清理173个接口、18,827行代码，节省42.8天人力；误删率0%，线上故障0起；ROI达25.8%。</p>
+                <br>
+                <p><strong>亮点：</strong>采用Vibe Coding（AI协同开发），开发效率提升60%，25天工作量压缩到10天。</p>
+            </div>
+
+            <h2>二、高频面试问题</h2>
+
+            <div class="qa-box">
+                <div class="question">Q1: 为什么要做这个项目？解决了什么痛点？</div>
+                <div class="answer">
+                    <p><strong>回答要点：</strong></p>
+                    <ol>
+                        <li><strong>业务背景：</strong>代码仓库3年累积200+零流量接口，影响编译速度和代码可读性</li>
+                        <li><strong>痛点1：</strong>人工治理耗时2小时/接口，无法规模化</li>
+                        <li><strong>痛点2：</strong>调用链复杂，手工排查易遗漏，误删风险约15%</li>
+                        <li><strong>痛点3：</strong>缺乏统一平台，各团队各自为战，无审计记录</li>
+                        <li><strong>价值：</strong>通过平台化工具，将治理效率提升87.5%，3个月节省42.8天人力</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="qa-box">
+                <div class="question">Q2: 介绍一下核心算法，为什么用DFS？</div>
+                <div class="answer">
+                    <p><strong>回答要点：</strong></p>
+                    <ol>
+                        <li><strong>算法目标：</strong>从零流量接口出发，递归分析所有只被该删除链路调用的方法</li>
+                        <li><strong>核心思想：</strong>如果方法M的所有调用方都在"待删除集合"中，且不在黑名单，则M可删</li>
+                        <li><strong>为什么DFS：</strong>
+                            <ul>
+                                <li>调用链通常较深（10-20层），DFS符合调用栈自然结构</li>
+                                <li>空间复杂度低，只需维护当前路径栈</li>
+                                <li>支持提前剪枝，遇到黑名单方法立即停止</li>
+                            </ul>
+                        </li>
+                        <li><strong>复杂场景：</strong>循环依赖用visited集合避免死循环，共享依赖通过"调用方检查"保留</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="qa-box">
+                <div class="question">Q3: 如何保证不误删？有哪些安全机制？</div>
+                <div class="answer">
+                    <p><strong>五重保障（重点）：</strong></p>
+                    <ol>
+                        <li><strong>调用链分析：</strong>只删除"仅被删除链路调用"的方法，避免误删正在使用的代码</li>
+                        <li><strong>黑名单机制：</strong>保护@Scheduled、@KafkaListener等框架方法，支付类、核心链路自动保护（42个方法被保护）</li>
+                        <li><strong>编译校验：</strong>删除后立即Maven编译，失败自动回滚（git reset --hard），已拦截3次误删</li>
+                        <li><strong>测试流水线：</strong>自动触发156个单元测试+42个集成测试，全部通过才允许合并</li>
+                        <li><strong>人工审批：</strong>生成预览报告，Tech Leader审查后才执行删除</li>
+                    </ol>
+                    <p><strong>结果：</strong>上线后3个月，误删率<span class="highlight">0%</span>，线上故障<span class="highlight">0起</span></p>
+                </div>
+            </div>
+
+            <div class="qa-box">
+                <div class="question">Q4: 技术选型为什么选java-all-call-graph？</div>
+                <div class="answer">
+                    <p><strong>选型对比：</strong></p>
+                    <ol>
+                        <li><strong>java-all-call-graph：</strong>成熟开源工具，专注Java方法调用关系分析</li>
+                        <li><strong>优势：</strong>
+                            <ul>
+                                <li>内置H2数据库，查询性能优秀（P99 < 200ms）</li>
+                                <li>支持泛型、Lambda、内部类等复杂场景</li>
+                                <li>社区活跃，文档完善，学习成本低</li>
+                            </ul>
+                        </li>
+                        <li><strong>对比其他方案：</strong>
+                            <ul>
+                                <li>自研引擎：成本高（需3-4周开发），场景覆盖不如成熟工具</li>
+                                <li>简单正则匹配：无法处理反射、动态代理等复杂场景</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="qa-box">
+                <div class="question">Q5: Vibe Coding是什么？具体怎么做的？</div>
+                <div class="answer">
+                    <p><strong>回答要点：</strong></p>
+                    <ol>
+                        <li><strong>定义：</strong>AI协同开发范式，人负责核心算法和架构，AI辅助样板代码生成</li>
+                        <li><strong>分工：</strong>
+                            <ul>
+                                <li>核心DFS算法、黑名单判定逻辑：100%人工</li>
+                                <li>CRUD、Mapper接口、DO实体类：90%由AI生成</li>
+                            </ul>
+                        </li>
+                        <li><strong>流程：</strong>我给AI写详细Prompt（包含表结构、查询需求、代码规范），AI生成后我人工校验SQL、补充异常处理</li>
+                        <li><strong>效果：</strong>25天工作量压缩到10天，开发效率提升60%，代码注释覆盖率从60%提升到85%</li>
+                        <li><strong>关键：</strong>AI是助手不是决策者，核心代码必须人工Review</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="qa-box">
+                <div class="question">Q6: 项目有哪些难点？如何解决的？</div>
+                <div class="answer">
+                    <p><strong>三大难点：</strong></p>
+                    <ol>
+                        <li><strong>难点1：方法签名匹配</strong>
+                            <ul>
+                                <li>问题：方法重载、泛型擦除、Lambda表达式</li>
+                                <li>解决：基于完整签名哈希（className:methodName(paramTypes):returnType）精确匹配</li>
+                            </ul>
+                        </li>
+                        <li><strong>难点2：循环依赖处理</strong>
+                            <ul>
+                                <li>问题：A→B→C→B会导致DFS死循环</li>
+                                <li>解决：visited集合记录已访问节点，检测到重复立即return</li>
+                            </ul>
+                        </li>
+                        <li><strong>难点3：反射/动态代理识别</strong>
+                            <ul>
+                                <li>问题：静态分析无法识别反射调用</li>
+                                <li>解决：黑名单机制保护@Resource、@Autowired等注解方法，配合编译校验兜底</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="qa-box">
+                <div class="question">Q7: 如果再做一次，有哪些可以改进的地方？</div>
+                <div class="answer">
+                    <p><strong>改进方向：</strong></p>
+                    <ol>
+                        <li><strong>动态调用识别：</strong>结合运行时字节码增强（如JavaAgent），识别反射调用，降低漏报率</li>
+                        <li><strong>跨语言支持：</strong>扩展到Kotlin、Scala项目，服务更多团队</li>
+                        <li><strong>智能风险评估：</strong>基于历史变更记录、告警数据，自动评估方法删除风险</li>
+                        <li><strong>数据可视化：</strong>治理效果大盘、代码健康度趋势图，提升平台价值感知</li>
+                    </ol>
+                </div>
+            </div>
+
+            <h2>三、STAR法则回答模板</h2>
+
+            <div class="star-method">
+                <h3>Situation（背景）</h3>
+                <p>鲁班内控平台经过3年迭代，代码仓库累积200+零流量接口和3000+行僵尸代码，人工治理耗时2小时/接口，误删风险约15%，无法规模化处理。</p>
+
+                <h3 style="margin-top: 20px;">Task（任务）</h3>
+                <p>构建平台化代码治理工具，实现从"发现 → 分析 → 删除 → 验证 → 交付"的全流程自动化，提升治理效率至少5倍，确保误删率<1%。</p>
+
+                <h3 style="margin-top: 20px;">Action（行动 - 重点展开）</h3>
+                <ol>
+                    <li><strong>技术方案设计：</strong>
+                        <ul>
+                            <li>对接FAST流量监控获取零流量接口</li>
+                            <li>采用java-all-call-graph做字节码解析，生成方法调用关系图</li>
+                            <li>设计DFS级联删除算法，递归分析可删除方法集合</li>
+                            <li>配合黑名单机制保护核心方法，编译校验确保安全</li>
+                        </ul>
+                    </li>
+                    <li><strong>核心算法实现：</strong>
+                        <ul>
+                            <li>基于H2数据库存储调用图（jacg_method_call、jacg_method_info表）</li>
+                            <li>DFS递归分析：如果方法M的所有调用方都在待删除集合，则M可删</li>
+                            <li>处理循环依赖（visited集合）、共享依赖（调用方检查）</li>
+                        </ul>
+                    </li>
+                    <li><strong>安全机制建设：</strong>
+                        <ul>
+                            <li>黑名单保护42个核心方法（支付类、@Scheduled等）</li>
+                            <li>编译校验：删除后Maven编译，失败自动回滚</li>
+                            <li>测试流水线：156个单元测试+42个集成测试</li>
+                        </ul>
+                    </li>
+                    <li><strong>平台化建设：</strong>
+                        <ul>
+                            <li>Web UI操作界面（React + Ant Design）</li>
+                            <li>预览报告生成（调用链树图可视化）</li>
+                            <li>自动推送MR、触发CI/CD</li>
+                        </ul>
+                    </li>
+                    <li><strong>AI协同开发：</strong>
+                        <ul>
+                            <li>采用Vibe Coding，核心算法人工，样板代码AI生成</li>
+                            <li>25天工作量压缩到10天，效率提升60%</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <h3 style="margin-top: 20px;">Result（结果 - 用数据说话）</h3>
+                <ol>
+                    <li><strong>效率提升：</strong>单接口治理从2小时降至15分钟，效率提升87.5%</li>
+                    <li><strong>规模成果：</strong>3个月清理173个接口、719个方法、18,827行代码，节省42.8天人力</li>
+                    <li><strong>质量保障：</strong>误删率0%，线上故障0起，编译速度提升9.4%</li>
+                    <li><strong>经济价值：</strong>3个月ROI达25.8%，经济价值¥6.4万，预计年收益¥40万+</li>
+                    <li><strong>团队推广：</strong>已推广到5个团队，覆盖40+人，满意度4.7/5.0</li>
+                </ol>
+            </div>
+
+            <h2>四、面试注意事项</h2>
+
+            <div class="tip-box">
+                <h3>✅ 加分项</h3>
+                <ul>
+                    <li>主动提及<strong>量化数据</strong>（87.5%、42.8天、0%、25.8%等）</li>
+                    <li>突出<strong>技术亮点</strong>（DFS算法、黑名单机制、AI协同开发）</li>
+                    <li>展示<strong>全局思维</strong>（不只是写代码，还考虑安全、推广、ROI）</li>
+                    <li>提及<strong>团队协作</strong>（与前端、测试、业务方的协作经验）</li>
+                    <li>表达<strong>持续优化意识</strong>（提出改进方向，如动态调用识别）</li>
+                </ul>
+            </div>
+
+            <div class="warning-box">
+                <h3>⚠️ 避坑指南</h3>
+                <ul>
+                    <li>不要夸大AI作用，强调<strong>人的主导地位</strong>（核心算法100%人工）</li>
+                    <li>不要说"项目很简单"，而是说"<strong>通过技术方案设计解决了复杂问题</strong>"</li>
+                    <li>不要只说"我做了什么"，要说"<strong>为什么这样做</strong>"（体现思考能力）</li>
+                    <li>不要空谈理论，一定要结合<strong>具体数据和案例</strong></li>
+                    <li>被问到不会的问题，<strong>坦诚回答</strong>，不要硬编（可以说"这是未来优化方向"）</li>
+                </ul>
+            </div>
+
+            <h2>五、快速记忆卡片</h2>
+
+            <div class="key-points">
+                <h3>核心数字（必须记住）</h3>
+                <ul>
+                    <li>效率：2小时 → 15分钟，提升 <strong>87.5%</strong></li>
+                    <li>规模：173个接口，18,827行代码，节省 <strong>42.8天</strong></li>
+                    <li>质量：误删率 <strong>0%</strong>，线上故障 <strong>0起</strong></li>
+                    <li>ROI：3个月 <strong>25.8%</strong>，年收益 <strong>¥40万+</strong></li>
+                    <li>AI：开发周期 <strong>25天 → 10天</strong>，效率提升 <strong>60%</strong></li>
+                </ul>
+
+                <h3>技术关键词</h3>
+                <ul>
+                    <li>java-all-call-graph、H2、DFS、黑名单、编译校验</li>
+                    <li>Vibe Coding、JavaParser、Maven Invoker、JGit</li>
+                    <li>K8s、Spring Boot、MyBatis、React、Ant Design</li>
+                </ul>
+
+                <h3>亮点（差异化竞争力）</h3>
+                <ul>
+                    <li>平台化设计（不是一次性脚本）</li>
+                    <li>五重安全保障（调用链分析+黑名单+编译+测试+人工）</li>
+                    <li>AI协同开发（Vibe Coding实践）</li>
+                    <li>全链路自动化（FAST→分析→删除→校验→MR）</li>
+                </ul>
+            </div>
+
+            <p style="margin-top: 30px; text-align: center;">
+                <a href="achievement.html" style="display: inline-block; background: #6c757d; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin-right: 10px;">← 上一节</a>
+                <a href="index.html" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px;">返回首页</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
